@@ -1,0 +1,10 @@
+Feel free to contribute! I (we?) will be happy if you do.
+
+Just send me any patches or suggestions to mongodloid@va1en0k.net
+Please, write test for every change.
+
+If you don't know what to fix, but you very want to, check http://code.google.com/p/mongodloid/issues/list
+
+If you want a direct write access to Mercurial, send me a couple of patches and ask for the access :-)
+
+Any help with documentation will be appreciated, too!
