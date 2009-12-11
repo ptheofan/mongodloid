@@ -1,5 +1,6 @@
 <?php
 require_once '..\library\Mongodloid\Connection.php';
+require_once '..\library\Mongodloid\Exception.php';
 
 class ConnectionTest extends PHPUnit_Framework_TestCase 
 {
