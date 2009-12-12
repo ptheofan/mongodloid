@@ -15,6 +15,10 @@ class Mongodloid_DB {
 		return $this->_collections[$name];
 	}
 	
+	public function getName() {
+		return (string)$this->_db;
+	}
+	
 	public function __construct(MongoDb $db, Mongodloid_Connection $connection) {
 		$this->_db = $db;
 		$this->_connection = $connection;

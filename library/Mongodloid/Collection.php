@@ -6,9 +6,64 @@ class Mongodloid_Collection {
 	private $_collection;
 	private $_db;
 	
+	const UNIQUE = 1;
+	const DROP_DUPLICATES = 2;
+	
 	public function __construct(MongoCollection $collection, Mongodloid_DB $db) {
 		$this->_collection = $collection;
 		$this->_db = $db;
+	}
+	
+	
+	public function getName() {
+		return $this->_collection->getName();
+	}
+
+	public function dropIndexes() {
+		return $this->_collection->deleteIndexes();
+	}
+	
+	public function dropIndex($field) {
+		return $this->_collection->deleteIndex($field);
+	}
+	
+	public function ensureUniqueIndex($fields, $dropDups = false) {
+		return $this->ensureIndex($fields, $dropDups ? self::DROP_DUPLICATES : self::UNIQUE);
+	}
+	
+	public function ensureIndex($fields, $params = array()) {
+		if (!is_array($fields))
+			$fields = array($fields => 1);
+			
+		$ps = array();
+		if ($params == self::UNIQUE || $params == self::DROP_DUPLICATES)
+			$ps['unique'] = true;
+		if  ($params == self::DROP_DUPLICATES)
+			$ps['dropDups'] = true;
+		
+		// I'm so sorry :(
+		if (Mongo::VERSION == '1.0.1')
+			$ps = (bool)$ps['unique'];
+			
+		return $this->_collection->ensureIndex($fields, $ps);
+	}
+	
+	public function getIndexedFields() {
+		$indexes = $this->getIndexes();
+
+		$fields = array();
+		foreach($indexes as $index) {
+			$keys = array_keys($index->get('key'));
+			foreach($keys as $key)
+				$fields[] = $key;
+		}
+		
+		return $fields;
+	}
+	
+	public function getIndexes() {
+		$indexCollection = $this->_db->getCollection('system.indexes');
+		return $indexCollection->query('ns', $this->_db->getName() . '.' . $this->getName());
 	}
 	
 	public function query() {
