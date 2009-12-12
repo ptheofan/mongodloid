@@ -1,9 +1,9 @@
-Welcome to the Mongodloid 0.1 Release! 
+Welcome to the Mongodloid 0.0.3-alpha Release! 
 
 RELEASE INFORMATION
 ---------------
-Mongodloid 0.1dev Release ([INSERT REV NUM HERE]).
-Released on <Month> <Day>, <Year>.
+Mongodloid 0.0.3-alpha Release (Revision d75e12aeef).
+Released on December 12, 2009.
 
 SYSTEM REQUIREMENTS
 -------------------
