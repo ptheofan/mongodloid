@@ -5,13 +5,115 @@ require_once 'Query.php';
 class Mongodloid_Collection {
 	private $_collection;
 	private $_db;
+	private $__fields = array();
 	
-	const UNIQUE = 1;
-	const DROP_DUPLICATES = 2;
+	protected $_entityClass = 'Mongodloid_Entity';
+	protected $_fields = array();	 // initial settings for overloading
+	protected $_unknownFieldsAllowed = true;
+	
+	const UNIQUE = 'unique';
+	const DROP_DUPLICATES = 'dropdups';
 	
 	public function __construct(MongoCollection $collection, Mongodloid_DB $db) {
 		$this->_collection = $collection;
 		$this->_db = $db;
+		
+		$this->init();
+		$this->registerFields($this->_fields);
+	}
+	
+	protected function init() { }
+
+	public function areUnknownFieldsAllowed() {
+		return $this->_unknownFieldsAllowed;
+	}
+	
+	public function setUnknownFieldsAllowed($flag) {
+		$this->_unknownFieldsAllowed = (bool)$flag;
+		return $this;
+	}
+
+	public function translateField($key, $value) {
+		$key = preg_replace('@(^|.)(\d+)(.|$)@', '.', $key);
+		
+		if (is_array($value)) {
+			
+			$self =& $this;
+			array_walk(&$value, function(&$_value, $_key) use (&$self, $key) {
+				$_value = $self->translateField( trim($key . '.' . $_key, '.'), $_value );
+			});
+			
+		} else {
+			$key = (string)$key;
+		
+			$info = $this->getFieldInfo($key);
+			
+			if (!$info) {
+				if (!$this->areUnknownFieldsAllowed())
+					throw new Mongodloid_Exception('Field ' . $key . ' is not allowed.');
+				
+				return $value;
+			}
+			
+			if ($info['type'])
+				settype($value, $info['type']);
+		}
+		return $value;
+	}
+
+	public function getFieldInfo($name) {
+		return $this->__fields[$name];
+	}
+
+	public function registerFields($fields) {
+		foreach($fields as $name => $params) {
+			$this->registerField($name, $params);
+		}
+	}
+
+	public function registerField($name, $type = null, $params = array()) {
+		if (is_array($type)) {
+			$params = $type;
+			$type = null;
+		}
+		
+		if ($type) {
+			$params['type'] = $type;
+		}
+		
+		$_params = array();
+		foreach($params as $id => $value) {
+			if (is_string($id) && $value)
+				$_params[$id] = $value;
+			else if (is_string($value))
+				$_params[$value] = true;
+		}
+		$params = $_params;
+		
+		$this->__fields[$name] = $params;
+		
+		if ($params['unique']) {
+			$this->ensureUniqueIndex($name);
+		} else if ($params['index']) {
+			$this->ensureIndex($name);
+		}
+	}
+
+	public function getEntity() {
+		$args = func_get_args();
+		$args[1] = $this;
+		$reflectionClass = new ReflectionClass( $this->_entityClass ); 
+        $entity = $reflectionClass->newInstanceArgs( $args );
+        return $entity;
+	}
+
+	public function getEntityClass() {
+		return $this->_entityClass;
+	}
+	
+	public function setEntityClass($className) {
+		$this->_entityClass = $className;
+		return $this;
 	}
 	
 	public function update($query, $values) {
@@ -78,9 +180,13 @@ class Mongodloid_Collection {
 	}
 	
 	public function save(Mongodloid_Entity $entity) {
+		foreach ($this->__fields as $name => $field)
+			if ($field['required'] && !$entity->get($name))
+				throw new Mongodloid_Exception('Field ' . $name . ' is required!');
+		
 		$data = $entity->getRawData();
 		
-		$result = $this->_collection->save($entity->getRawData());
+		$result = $this->_collection->save($data);
 		if (!$result)
 			return false;
 			
@@ -93,7 +199,7 @@ class Mongodloid_Collection {
 		if ($want_array)
 			return $values;
 		
-		return new Mongodloid_Entity($values, $this);
+		return new $this->_entityClass($values, $this);
 	}
 	
 	public function drop() {

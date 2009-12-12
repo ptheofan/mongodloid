@@ -1,8 +1,104 @@
 <?php
 require_once '..\library\Mongodloid\Connection.php';
 
+class TestCollection extends Mongodloid_Collection {
+    protected function init() {
+        $this->ensureIndex('omgtestfield');
+    }
+}
+
 class CollectionTest extends PHPUnit_Framework_TestCase 
-{	
+{
+    /**
+     * @expectedException Mongodloid_Exception
+     */
+    public function testRequiredFields2() {
+        $collection = $this->db->getCollection($this->collection_name . '5');
+        $collection->registerField( 'somefield', array('required') );
+        
+        $entity = $collection->getEntity();
+        $entity->save();
+    }
+    /**
+     * @expectedException Mongodloid_Exception
+     */
+    public function testRequiredFields() {
+        $collection = $this->db->getCollection($this->collection_name . '4');
+        $collection->registerField( 'somefield', array('required' => true) );
+        
+        $entity = $collection->getEntity();
+        $entity->save();
+    }
+    /**
+     * @expectedException Mongodloid_Exception
+     */
+    public function testUnknownFields() {
+        $collection = $this->db->getCollection($this->collection_name . '2');
+        $collection->setUnknownFieldsAllowed(false);
+
+        $entity = $collection->getEntity(array(
+            'unknownfield' => 'omg'
+        ));
+    }
+    /**
+     * @expectedException Mongodloid_Exception
+     */
+    public function testUnknownFields2() {
+        $collection = $this->db->getCollection($this->collection_name . '3');
+        $collection->setUnknownFieldsAllowed(false);
+
+        $entity = $collection->getEntity();
+        $entity->set('unknownfield2', 'hi');
+    }
+    public function testFieldTypes() {
+        $collection = $this->db->getCollection($this->collection_name);
+        $collection->dropIndexes();
+        $collection->drop();
+        
+        $collection = $this->db->getCollection($this->collection_name);
+        $entity = $collection->getEntity();
+        
+        $collection->registerField( 'somestringfield', 'string' );
+        $collection->registerField( 'someintfield', 'int' );
+        $entity->set('somestringfield', 123);
+        $this->assertType('string', $entity->get('somestringfield'));
+        $entity->set('someintfield', 'hellothere');
+        $this->assertType('int', $entity->get('someintfield'));
+        $entity = $collection->getEntity(array(
+            'somestringfield' => 821.5,
+            'someintfield'    => 'sdsads'
+        ));
+        $this->assertType('string', $entity->get('somestringfield'));
+        $this->assertType('int', $entity->get('someintfield'));
+        
+        $collection->registerField( 'somestringfield_indexed', 'string', array('index' => true) );
+        $this->assertContains('somestringfield_indexed', $collection->getIndexedFields());
+        
+        $collection->registerField( 'somestringfield_unique', 'string', array('unique' => true) );
+        $this->assertContains('somestringfield_unique', $collection->getIndexedFields());
+        $found = false;
+        foreach($collection->getIndexes() as $index) {
+            if ($index->get('key.somestringfield_unique')) {
+                $this->assertTrue($index->get('unique'));
+                $found = true;
+            }
+        }
+        $this->assertTrue($found);
+        
+        $entity->set('unknownfield', 123);
+        $this->assertEquals($entity->get('unknownfield'), 123);
+        
+        $collection->drop();
+    }
+    public function testCollectionInherit() {
+        $collection = $this->db->getCollection($this->collection_name);
+        $collection->dropIndexes();
+        $collection->drop();
+        
+        $collection = $this->db->getCollection($this->collection_name, 'TestCollection');
+        $this->assertThat($collection, $this->isInstanceOf('TestCollection'));
+        $this->assertContains('omgtestfield', $collection->getIndexedFields());
+    }
     public function testIndexes() {
         $id = mt_rand(1000, 9999);
         $collection = $this->db->getCollection($this->collection_name);

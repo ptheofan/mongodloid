@@ -1,8 +1,45 @@
 <?php
-require_once '..\library\Mongodloid\Connection.php';
+require_once dirname(__FILE__) . '\..\..\library\Mongodloid\ID.php';
+require_once dirname(__FILE__) . '\..\..\library\Mongodloid\Connection.php';
+require_once dirname(__FILE__) . '\..\..\library\Mongodloid\Exception.php';
+
+class TestEntity extends Mongodloid_Entity {
+	protected function init() {
+		$this->set('initok', 123);
+	}
+}
 
 class EntityTest extends PHPUnit_Framework_TestCase 
 {
+	public function setUp() {
+		Mongodloid_Connection::getInstance()
+						->getDb('test')->drop();
+	}
+	public function testEntityInherit() {
+		$collection = Mongodloid_Connection::getInstance()
+						->getDb('test')
+						->getCollection('testcollection' . mt_rand(123, 456));
+		
+		$collection->clear();
+		
+		$entity1 = new Mongodloid_Entity(array(
+			'hi' => array(1, 2, 3)
+		), $collection);
+		$entity1->save();
+		
+		$collection->setEntityClass('TestEntity');
+		
+		$count = 0;
+		foreach ($collection->query() as $entity) {
+			$count++;
+			$this->assertThat($entity, $this->isInstanceOf('TestEntity'));
+			$this->assertEquals($entity->get('initok'), 123);
+		}
+		
+		$this->assertEquals(1, $count);
+		
+		$collection->drop();
+	}
 	public function testHelpers() {
 		$collection = Mongodloid_Connection::getInstance()
 						->getDb('test')

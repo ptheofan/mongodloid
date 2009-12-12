@@ -16,6 +16,10 @@ class Mongodloid_Entity {
 		'pullAll'
 	);
 	
+	protected function init() {
+		
+	}
+	
 	public function same(Mongodloid_Entity $obj) {
 		return $this->getId() && ((string)$this->getId() == (string)$obj->getId());
 	}
@@ -118,19 +122,24 @@ class Mongodloid_Entity {
 	}
 	
 	public function set($key, $value, $dontSend = false) {
+		$free_key = preg_replace('@\\[\d+\\]@', '', $key);
 		$key = preg_replace('@\\[([^\\]]+)\\]@', '.$1', $key);
 		$real_key = $key;
 		$result = &$this->_values;
 		
-		do {
+		while ($key) {
 			list($current, $key) = explode('.', $key, 2);
 			$result = &$result[$current];
-		} while ($key !== null);
+		};
+
+		if ($this->collection()) {
+			$result = $this->_collection->translateField($free_key, $value);
+		} else {
+			$result = $value;
+		}
 		
-		$result = $value;
-		
-		if (!$dontSend && $this->getId())
-			$this->update(array('$set' => array($real_key => $value)));
+		if (!$dontSend && $this->collection() && $this->getId() && $free_key)
+			$this->update(array('$set' => array($real_key => $result)));
 		
 		return $this;
 	}
@@ -167,8 +176,11 @@ class Mongodloid_Entity {
 		if (!is_array($data))
 			throw new Mongodloid_Exception('Data must be an array!');
 			
-		// prevent from making a link
-		$this->_values = unserialize(serialize($data));
+		$data = unserialize(serialize($data));
+		
+		$this->set('', $data, false);
+		
+		return $this;
 	}
 	public function save($collection = null) {
 		if ($collection instanceOf Mongodloid_Collection)
@@ -213,7 +225,9 @@ class Mongodloid_Entity {
 		if (!is_array($values))
 			$values = array();
 		
-		$this->setRawData($values);
 		$this->collection($collection);
+		$this->setRawData($values);
+		
+		$this->init();
 	}
 }

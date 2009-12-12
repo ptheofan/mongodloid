@@ -2,8 +2,13 @@
 class Mongodloid_Cursor implements Iterator {
 	private $_cursor;
 	
-	public function __construct(MongoCursor $cursor) {
+	protected $_collection;
+	protected $_entityClass;
+	
+	public function __construct(MongoCursor $cursor, $collection) {
 		$this->_cursor = $cursor;
+		$this->_collection = $collection;
+		$this->_entityClass = $this->_collection->getEntityClass();
 	}
 	
 	public function count() {
@@ -11,7 +16,7 @@ class Mongodloid_Cursor implements Iterator {
 	}
 	
 	public function current() {
-		return new Mongodloid_Entity( $this->_cursor->current() );
+		return new $this->_entityClass( $this->_cursor->current(), $this->_collection );
 	}
  	public function key() {
  		return $this->_cursor->key();
