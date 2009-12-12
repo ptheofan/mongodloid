@@ -3,6 +3,42 @@ require_once '..\library\Mongodloid\Connection.php';
 
 class EntityTest extends PHPUnit_Framework_TestCase 
 {
+	public function testHelpers() {
+		$collection = Mongodloid_Connection::getInstance()
+						->getDb('test')
+						->getCollection('testcollection' . mt_rand(123, 456));
+						
+		$entity1 = new Mongodloid_Entity(array(
+			'hi' => array(1, 2, 3)
+		), $collection);
+		$entity1->save();
+		$entity2 = new Mongodloid_Entity(array(
+			'hi' => array(1, 2, 3)
+		), $collection);
+		$entity2->save();
+		$entity3 = new Mongodloid_Entity($entity1->getId(), $collection);
+		$entity4 = new Mongodloid_Entity(array(
+			'hi' => array(1, 2, 3, 4)
+		), $collection);
+		$entity4->save();
+		
+		$this->assertTrue($entity1->same($entity3));
+		$this->assertFalse($entity1->same($entity2));
+		$this->assertFalse($entity1->same($entity4));
+		$this->assertTrue($entity1->equals($entity3));
+		$this->assertTrue($entity1->equals($entity2));
+		$this->assertFalse($entity1->equals($entity4));
+
+		
+		
+		$entity1->set('ids', array($entity1->getId(), $entity2->getId()));
+		$this->assertTrue($entity1->inArray('hi', 3));
+		$this->assertFalse($entity1->inArray('hi', 4));
+		$this->assertTrue($entity1->inArray('ids', $entity2));
+		$this->assertFalse($entity1->inArray('ids', $entity4));
+		
+		$collection->drop();
+	}
 	public function testAtomics() {
 		$collection = Mongodloid_Connection::getInstance()
 						->getDb('test')

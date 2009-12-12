@@ -15,6 +15,27 @@ class Mongodloid_Entity {
 		'pull',
 		'pullAll'
 	);
+	
+	public function same(Mongodloid_Entity $obj) {
+		return $this->getId() && ((string)$this->getId() == (string)$obj->getId());
+	}
+	
+	public function equals(Mongodloid_Entity $obj) {
+		$data1 = $this->getRawData();
+		$data2 = $obj->getRawData();
+		unset($data1['_id'], $data2['_id']);
+		
+		return $data1 == $data2;
+	}
+	
+	public function inArray($key, $value) {
+		if ($value instanceOf Mongodloid_Entity) {
+			// TODO: Add DBRef checking
+			return $this->inArray($key, $value->getId()) || $this->inArray($key, (string)$value->getId());
+		}
+		
+		return in_array($value, $this->get($key));
+	}
 
 	public function __call($name, $params) {
 		if (in_array($name, $this->_atomics)) {			
