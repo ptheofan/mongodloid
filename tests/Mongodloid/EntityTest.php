@@ -3,6 +3,72 @@ require_once '..\library\Mongodloid\Connection.php';
 
 class EntityTest extends PHPUnit_Framework_TestCase 
 {
+	public function testAtomics() {
+		$collection = Mongodloid_Connection::getInstance()
+						->getDb('test')
+						->getCollection('testcollection' . mt_rand(123, 456));
+		$data = array(
+			'a' => 18,
+			'b' => 'hello',
+			'c' => array(),
+			//'d' => array(),
+			'e' => array(1, 2, 3),
+			'f' => array(1, 2, 3),
+			'g' => array(1, 2, 3),
+			'h' => array(1, 2, 3)
+		);
+						
+		$entity = new Mongodloid_Entity($data, $collection);
+		$entity->save();
+		$id = $entity->getId();
+		
+		$entity->inc('a')->inc('a', 3); // chaining!
+		$this->assertEquals($entity->get('a'), 22);
+		$tEntity = new Mongodloid_Entity($id, $collection);
+		$this->assertEquals($tEntity->get('a'), 22);
+		
+		$entity->set('b', 'hi');
+		$this->assertEquals($entity->get('b'), 'hi');
+		$tEntity = new Mongodloid_Entity($id, $collection);
+		$this->assertEquals($tEntity->get('b'), 'hi');
+		
+		$entity->push('c', 1221);
+		$this->assertEquals($entity->get('c'), array(1221));
+		$tEntity = new Mongodloid_Entity($id, $collection);
+		$this->assertEquals($tEntity->get('c'), array(1221));
+		
+		$entity->pushAll('d', array(8, 5, 9, 6));
+		$this->assertEquals($entity->get('d'), array(8, 5, 9, 6));
+		$tEntity = new Mongodloid_Entity($id, $collection);
+		$this->assertEquals($tEntity->get('d'), array(8, 5, 9, 6));
+		
+		$entity->pop('e');
+		$this->assertEquals($entity->get('e'), array(1, 2));
+		$tEntity = new Mongodloid_Entity($id, $collection);
+		$this->assertEquals($tEntity->get('e'), array(1, 2));
+		
+		$entity->pop('f', Mongodloid_Entity::POPFIRST);
+		$this->assertEquals($entity->get('f'), array(2, 3));
+		$tEntity = new Mongodloid_Entity($id, $collection);
+		$this->assertEquals($tEntity->get('f'), array(2, 3));
+		
+		$entity->shift('f');
+		$this->assertEquals($entity->get('f'), array(3));
+		$tEntity = new Mongodloid_Entity($id, $collection);
+		$this->assertEquals($tEntity->get('f'), array(3));
+		
+		$entity->pull('g', 2);
+		$this->assertEquals($entity->get('g'), array(1, 3));
+		$tEntity = new Mongodloid_Entity($id, $collection);
+		$this->assertEquals($tEntity->get('g'), array(1, 3));
+		
+		$entity->pullAll('h', array(1, 3));
+		$this->assertEquals($entity->get('h'), array(2));
+		$tEntity = new Mongodloid_Entity($id, $collection);
+		$this->assertEquals($tEntity->get('h'), array(2));
+		
+		$collection->drop();
+	}
 	public function testSaveLoadRemove() {
 		$collection = Mongodloid_Connection::getInstance()
 						->getDb('test')
