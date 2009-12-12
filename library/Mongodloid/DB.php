@@ -6,7 +6,19 @@ class Mongodloid_DB {
 	private $_db;
 	private $_connection;
 	
+	protected $_unknownFieldsAllowed = null;
+	
 	private $_collections = array();
+	
+	public function areUnknownFieldsAllowed() {
+		return ($this->_unknownFieldsAllowed === null) ? $this->_connection->areUnknownFieldsAllowed() :
+															$this->_unknownFieldsAllowed;
+	}
+	
+	public function setUnknownFieldsAllowed($flag) {
+		$this->_unknownFieldsAllowed = (bool)$flag;
+		return $this;
+	}
 	
 	public function getCollection($name, $className = 'Mongodloid_Collection') {
 		if (!$this->_collections[$name] || !$this->_collections[$name] instanceOf $className)

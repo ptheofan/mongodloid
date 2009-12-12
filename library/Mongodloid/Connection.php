@@ -8,6 +8,17 @@ class Mongodloid_Connection {
 	private $_server = '';
 	private $_dbs = array();
 
+	protected $_unknownFieldsAllowed = true;
+
+	public function areUnknownFieldsAllowed() {
+		return $this->_unknownFieldsAllowed;
+	}
+	
+	public function setUnknownFieldsAllowed($flag) {
+		$this->_unknownFieldsAllowed = (bool)$flag;
+		return $this;
+	}
+
 	public function getDB($db) {
 		if (!$this->_dbs[$db]) {
 			$this->forceConnect();

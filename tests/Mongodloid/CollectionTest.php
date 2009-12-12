@@ -7,8 +7,110 @@ class TestCollection extends Mongodloid_Collection {
     }
 }
 
+class TestCollection2 extends Mongodloid_Collection {
+    protected $_unknownFieldsAllowed = false;
+    protected $_fields = array(
+        'hi'  => array('type' => 'string', 'unique'),
+        'hi2' => array('type' => 'int', 'required'),
+        'hi3' => null,
+    );
+}
+
 class CollectionTest extends PHPUnit_Framework_TestCase 
 {
+    public function testSubFields() {
+        $collection = $this->db->getCollection($this->collection_name . '999');
+        
+        $collection->registerField( 'somefierrd', array(
+            'subfields' => array(
+                'theint' => array(
+                    'type' => 'int'
+                )
+            )
+        ) );
+        
+        $entity = $collection->getEntity();
+        $entity->set('somefierrd.theint', '11sdas');
+        $this->assertType('int', $entity->get('somefierrd.theint'));
+        
+        $collection->registerField( 'somefierrd', array(
+            'field.theint2' => array(
+                'type' => 'int'
+            )
+        ) );
+        
+        $entity = $collection->getEntity();
+        $entity->set('somefierrd.theint2', '11sdas');
+        $this->assertType('int', $entity->get('somefierrd.theint2'));
+    }
+    public function testClassProperties1() {
+        $collection = $this->db->getCollection($this->collection_name . '21', 'TestCollection2');
+        
+        $entity = $collection->getEntity(array('hi' => 12345));
+        $this->assertType('string', $entity->get('hi'));
+    }
+    public function testClassProperties2() {
+        $collection = $this->db->getCollection($this->collection_name . '21', 'TestCollection2');
+        
+        $entity = $collection->getEntity(array('hi3' => 'there', 'hi2' => 'omg'));
+        $entity->save();
+    }
+    /**
+     * @expectedException Mongodloid_Exception
+     */
+    public function testClassProperties3() {
+        $collection = $this->db->getCollection($this->collection_name . '21', 'TestCollection2');
+        
+        $entity = $collection->getEntity(array('hi3' => 'there'));
+        $entity->save();
+    }
+    /**
+     * @expectedException Mongodloid_Exception
+     */
+    public function testClassProperties4() {
+        $collection = $this->db->getCollection($this->collection_name . '21', 'TestCollection2');
+        
+        $entity = $collection->getEntity(array('hi4' => 'there', 'hi2' => 'omg'));
+        $entity->save();
+    }
+    /**
+     * @runInSeparateProcess
+     */
+    public function testDbSetting3() {
+        $this->connection->setUnknownFieldsAllowed(false);
+        
+        $collection = $this->db->getCollection($this->collection_name . '5');
+        $collection->setUnknownFieldsAllowed(true);
+        
+        $entity = $collection->getEntity(array('hi' => 'there'));
+        $entity->save();
+        // no exception
+    }
+    /**
+     * @runInSeparateProcess
+     * @expectedException Mongodloid_Exception
+     */
+    public function testDbSetting2() {
+        $this->connection->setUnknownFieldsAllowed(false);
+        
+        $collection = $this->db->getCollection($this->collection_name . '5');
+        
+        $entity = $collection->getEntity(array('hi' => 'there'));
+        $entity->save();
+    }
+    /**
+     * @runInSeparateProcess
+     * @expectedException Mongodloid_Exception
+     */
+    public function testDbSetting() {
+        $this->db->setUnknownFieldsAllowed(false);
+        
+        $collection = $this->db->getCollection($this->collection_name . '5');
+        
+        $entity = $collection->getEntity(array('hi' => 'there'));
+        $entity->save();
+    }
+    
     /**
      * @expectedException Mongodloid_Exception
      */
