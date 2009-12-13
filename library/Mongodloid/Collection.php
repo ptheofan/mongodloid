@@ -47,7 +47,7 @@ class Mongodloid_Collection {
 		
 		$info = $this->getFieldInfo($key);
 		
-		if (is_array($value) && $info['type'] != 'ids_array') {
+		if (is_array($value) && $info['type'] != 'array') {
 			
 			$self =& $this;
 			array_walk(&$value, function(&$_value, $_key) use (&$self, $key) {
@@ -66,14 +66,23 @@ class Mongodloid_Collection {
 			
 			if ($info['type']) {
 				switch ($info['type']) {
-					case 'ids_array':
-						if (is_string($info['collection'])) {
-							$info['collection'] =
-								$this->_db->getCollection($info['collection']);
-						}
+					case 'id':
+						$value = new $info['collection']($value);
+						break;
+					case 'array':
+						if ($info['of'] == 'id') {
+							if (is_string($info['collection'])) {
+								$info['collection'] =
+									$this->_db->getCollection(
+											$info['collection']
+										);
+							}
 						
-						$value = new Mongodloid_IDsArray($value,
-														 $info['collection']);
+							$value = new Mongodloid_IDsArray($value,
+															 $info['collection']
+															);
+						}
+
 						break;
 				}
 			}
@@ -89,9 +98,9 @@ class Mongodloid_Collection {
 		if (!$info)
 			return $value;
 		
-		if ($info['type']) {
-			switch ($info['type']) {
-				case 'ids_array':
+		if ($info['of']) {
+			switch ($info['of']) {
+				case 'id':
 					if ($value instanceOf Mongodloid_Entity)
 						$value = $value->getId()->getMongoId();
 					break;
@@ -106,7 +115,7 @@ class Mongodloid_Collection {
 		
 		$info = $this->getFieldInfo($key);
 		
-		if (is_array($value) && $info['type'] != 'ids_array') {
+		if (is_array($value) && $info['type'] != 'array') {
 			
 			$self =& $this;
 			array_walk(&$value, function(&$_value, $_key) use (&$self, $key) {
@@ -128,13 +137,17 @@ class Mongodloid_Collection {
 			
 			if ($info['type']) {
 				switch ($info['type']) {
+					case 'id':
+						if ($value instanceOf Mongodloid_Entity)
+							$value = $value->getId()->getMongoId();
+						break;
 					case 'enum':
 						if (!in_array($value, $info['values']))
 							throw new Mongodloid_Exception(
 									'Invalid value for enum ' . $key
 								);
 						break;
-					case 'ids_array':
+					case 'array':
 						$self =& $this;
 						$value = array_map(function($entity) use($self, $key) {
 							return $self->translateArrayElementField($key,

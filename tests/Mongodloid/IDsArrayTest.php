@@ -16,7 +16,8 @@ class IDsArrayTest extends PHPUnit_Framework_TestCase {
 								->getDb('test')
 								->getCollection('hicol2');
 		$collection2->drop();
-		$collection2->registerField('ids', 'ids_array', array(
+		$collection2->registerField('ids', 'array', array(
+			'of' 		 => 'id',
 			'collection' => $collection
 		));
 		$entity = $collection2->getEntity(array(
