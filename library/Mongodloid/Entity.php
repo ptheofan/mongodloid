@@ -234,7 +234,7 @@ class Mongodloid_Entity {
 		
 		if (!$collection) {
 			if ($this->_collection) {
-				$this->collection(Mongoldloid_Connection::getInstance()
+				$this->collection(Mongodloid_Connection::getInstance()
 									->getDb()
 									->getCollection($this->_collection));
 			}
