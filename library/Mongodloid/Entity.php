@@ -26,7 +26,8 @@ class Mongodloid_Entity {
 	}
 	
 	public function same(Mongodloid_Entity $obj) {
-		return $this->getId() && ((string)$this->getId() == (string)$obj->getId());
+		return $this->getId() &&
+				((string)$this->getId() == (string)$obj->getId());
 	}
 	
 	public function equals(Mongodloid_Entity $obj) {
@@ -40,7 +41,8 @@ class Mongodloid_Entity {
 	public function inArray($key, $value) {
 		if ($value instanceOf Mongodloid_Entity) {
 			// TODO: Add DBRef checking
-			return $this->inArray($key, $value->getId()) || $this->inArray($key, (string)$value->getId());
+			return $this->inArray($key, $value->getId())
+					|| $this->inArray($key, (string)$value->getId());
 		}
 		
 		return in_array($value, $this->get($key));
@@ -230,7 +232,17 @@ class Mongodloid_Entity {
 		if (!is_array($values))
 			$values = array();
 		
-		$this->collection($collection);
+		if (!$collection) {
+			if ($this->_collection) {
+				$this->collection(Mongoldloid_Connection::getInstance()
+									->getDb()
+									->getCollection($this->_collection));
+			}
+		} else {
+			$this->collection($collection);
+		}
+		
+		
 		$this->setRawData($values);
 		
 		$this->init();

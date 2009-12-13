@@ -9,6 +9,8 @@ class Mongodloid_Connection {
 	private $_dbs = array();
 
 	protected $_unknownFieldsAllowed = true;
+	protected $_defaultDb = null;
+	
 
 	public function areUnknownFieldsAllowed() {
 		return $this->_unknownFieldsAllowed;
@@ -18,8 +20,20 @@ class Mongodloid_Connection {
 		$this->_unknownFieldsAllowed = (bool)$flag;
 		return $this;
 	}
+	
+	public function setDefaultDb($name) {
+		$this->_defaultDb = $name;
+		return $this;
+	}
 
-	public function getDB($db) {
+	public function getDB($db = null) {
+		if ($db === null) {
+			$db = $this->_defaultDb;
+		}
+		if (!$db) {
+			throw new Mongodloid_Exception('Have you forgotten to set DB name?');
+		}
+		
 		if (!$this->_dbs[$db]) {
 			$this->forceConnect();
 			$this->_dbs[$db] = new Mongodloid_DB($this->_connection->selectDB($db), $this);
