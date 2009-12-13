@@ -5,7 +5,7 @@ require_once 'Query.php';
 class Mongodloid_Collection {
 	private $_collection;
 	private $_db;
-	public $__fields = array();
+	protected $__fields = array();
 	
 	protected $_entityClass = 'Mongodloid_Entity';
 	protected $_fields = array();	 // initial settings for overloading
@@ -20,6 +20,7 @@ class Mongodloid_Collection {
 		
 		$this->init();
 		$this->registerFields($this->_fields);
+		$this->setEntityClass($this->_entityClass);
 	}
 	
 	protected function init() { }
@@ -124,6 +125,9 @@ class Mongodloid_Collection {
 	
 	public function setEntityClass($className) {
 		$this->_entityClass = $className;
+		$this->registerFields($className::$_fields);
+		if ($className::$_unknownFieldsAllowed !== null)
+			$this->setUnknownFieldsAllowed($className::$_unknownFieldsAllowed);
 		return $this;
 	}
 	

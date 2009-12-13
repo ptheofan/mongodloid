@@ -3,6 +3,11 @@ class Mongodloid_Entity {
 	private $_values;
 	private $_collection;
 	
+	
+	// initial settings for overloading, are added after settings in collection class
+	static public $_fields = array();	 
+	static public $_unknownFieldsAllowed = null;
+	
 	const POPFIRST = 1;
 	
 	private $_atomics = array(
