@@ -1,5 +1,5 @@
 <?php
-class Mongodloid_Cursor implements Iterator {
+class Mongodloid_Cursor implements Iterator, Countable {
 	private $_cursor;
 	
 	protected $_collection;

@@ -1,6 +1,7 @@
 <?php
 require_once 'Entity.php';
 require_once 'Query.php';
+require_once 'IDsArray.php';
 
 class Mongodloid_Collection {
 	private $_collection;
@@ -26,7 +27,10 @@ class Mongodloid_Collection {
 	protected function init() { }
 
 	public function areUnknownFieldsAllowed() {
-		return ($this->_unknownFieldsAllowed === null) ? $this->_db->areUnknownFieldsAllowed() : $this->_unknownFieldsAllowed;
+		//var_dump($this->_unknownFieldsAllowed); die;
+		return ($this->_unknownFieldsAllowed === null) ?
+					$this->_db->areUnknownFieldsAllowed() :
+						$this->_unknownFieldsAllowed;
 	}
 	
 	public function setUnknownFieldsAllowed($flag) {
@@ -34,10 +38,51 @@ class Mongodloid_Collection {
 		return $this;
 	}
 
+	public function detranslateField($key, $value) {
+		if ($key == '_id') {
+			return new Mongodloid_ID($value);
+		}
+		
+		$key = preg_replace('@(^|\\.)(\d+)(\\.|$)@', '.', $key);
+		
+		$info = $this->getFieldInfo($key);
+		
+		if (is_array($value) && $info['type'] != 'ids_array') {
+			
+			$self =& $this;
+			array_walk(&$value, function(&$_value, $_key) use (&$self, $key) {
+				$_value = $self->detranslateField(
+									trim($key . '.' . $_key, '.'),
+									$_value
+								);
+			});
+			
+		} else {
+			$key = (string)$key;
+			
+			if (!is_array($info)) {				
+				return $value;
+			}
+			
+			if ($info['type']) {
+				switch ($info['type']) {
+					case 'ids_array':
+						$value = new Mongodloid_IDsArray($value,
+														 $info['collection']);
+						break;
+				}
+			}
+				
+		}
+		return $value;
+	}
+
 	public function translateField($key, $value) {
 		$key = preg_replace('@(^|\\.)(\d+)(\\.|$)@', '.', $key);
 		
-		if (is_array($value)) {
+		$info = $this->getFieldInfo($key);
+		
+		if (is_array($value) && $info['type'] != 'ids_array') {
 			
 			$self =& $this;
 			array_walk(&$value, function(&$_value, $_key) use (&$self, $key) {
@@ -46,18 +91,37 @@ class Mongodloid_Collection {
 			
 		} else {
 			$key = (string)$key;
-		
-			$info = $this->getFieldInfo($key);
 			
 			if (!is_array($info)) {
 				if ($key != '_id' && !$this->areUnknownFieldsAllowed())
-					throw new Mongodloid_Exception('Field ' . $key . ' is not allowed.');
+					throw new Mongodloid_Exception(
+							'Field ' . $key . ' is not allowed.'
+						);
 				
 				return $value;
 			}
 			
-			if ($info['type'])
-				settype($value, $info['type']);
+			if ($info['type']) {
+				switch ($info['type']) {
+					case 'enum':
+						if (!in_array($value, $info['values']))
+							throw new Mongodloid_Exception(
+									'Invalid value for enum ' . $key
+								);
+						break;
+					case 'ids_array':
+						$value = array_map(function($entity) {
+							if (!$entity instanceOf Mongodloid_Entity) {
+								return $entity;
+							}
+							return $entity->getId()->getMongoId();
+						}, $value);
+						break;
+					default:
+						settype($value, $info['type']);
+				}
+			}
+				
 		}
 		return $value;
 	}
@@ -125,9 +189,16 @@ class Mongodloid_Collection {
 	
 	public function setEntityClass($className) {
 		$this->_entityClass = $className;
+		
+		if (!$className::$_settingsInitialized) {
+			$className::initSettings();
+		}
+		
 		$this->registerFields($className::$_fields);
-		if ($className::$_unknownFieldsAllowed !== null)
+		if ($className::$_unknownFieldsAllowed !== null) {
 			$this->setUnknownFieldsAllowed($className::$_unknownFieldsAllowed);
+		}
+
 		return $this;
 	}
 	
@@ -197,11 +268,14 @@ class Mongodloid_Collection {
 	public function save(Mongodloid_Entity $entity) {
 		foreach ($this->__fields as $name => $field)
 			if ($field['required'] && ($entity->get($name) === null))
-				throw new Mongodloid_Exception('Field ' . $name . ' is required!');
+				throw new Mongodloid_Exception(
+						'Field "' . $name . '" is required!'
+					);
 		
 		$data = $entity->getRawData();
 		
 		$result = $this->_collection->save($data);
+		
 		if (!$result)
 			return false;
 			

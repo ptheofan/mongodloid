@@ -4,9 +4,13 @@ class Mongodloid_Entity {
 	private $_collection;
 	
 	
-	// initial settings for overloading, are added after settings in collection class
+	// initial settings for overloading,
+	// are added after settings in collection class
 	static public $_fields = array();	 
 	static public $_unknownFieldsAllowed = null;
+	static public $_collectionName = null;
+	
+	static public $_settingsInitialized = false;
 	
 	const POPFIRST = 1;
 	
@@ -21,9 +25,8 @@ class Mongodloid_Entity {
 		'pullAll'
 	);
 	
-	protected function init() {
-		
-	}
+	protected function init() {	}
+	public static function initSettings() {	}
 	
 	public function same(Mongodloid_Entity $obj) {
 		return $this->getId() &&
@@ -154,9 +157,8 @@ class Mongodloid_Entity {
 	public function get($key) {
 		if (!$key)
 			return $this->_values;
-		if ($key == '_id')
-			return $this->getId();
-		
+			
+		$free_key = preg_replace('@\\[\d+\\]@', '', $key);
 		$key = preg_replace('@\\[([^\\]]+)\\]@', '.$1', $key);
 		$result = $this->_values;
 		
@@ -165,14 +167,15 @@ class Mongodloid_Entity {
 			$result = $result[$current];
 		} while ($key !== null);
 		
+		if ($this->collection()) {
+			$result = $this->_collection->detranslateField($free_key, $result);
+		}
+		
 		return $result;
 	}
 	
 	public function getId() {
-		if (!$this->_values['_id'])
-			return false;
-			
-		return new Mongodloid_ID($this->_values['_id']);
+		return $this->get('_id');
 	}
 	
 	
@@ -196,7 +199,10 @@ class Mongodloid_Entity {
 		if (!$this->collection())
 			throw new Mongodloid_Exception('You need to specify the collection');
 		
-		return $this->collection()->save($this);
+		if (!$this->collection()->save($this))
+			throw new Mongodloid_Exception('Something wrong with saving');
+		
+		return $this;
 	}
 	
 	public function collection($collection = null) {
@@ -233,10 +239,11 @@ class Mongodloid_Entity {
 			$values = array();
 		
 		if (!$collection) {
-			if ($this->_collection) {
+			if (static::$_collectionName) {
 				$this->collection(Mongodloid_Connection::getInstance()
 									->getDb()
-									->getCollection($this->_collection));
+									->getCollection(static::$_collectionName)
+									->setEntityClass(get_called_class()));
 			}
 		} else {
 			$this->collection($collection);

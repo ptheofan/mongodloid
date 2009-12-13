@@ -98,6 +98,7 @@ class EntityTest extends PHPUnit_Framework_TestCase
 		$entity->inc('a')->inc('a', 3); // chaining!
 		$this->assertEquals($entity->get('a'), 22);
 		$tEntity = new Mongodloid_Entity($id, $collection);
+		
 		$this->assertEquals($tEntity->get('a'), 22);
 		
 		$entity->set('b', 'hi');

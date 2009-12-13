@@ -1,4 +1,5 @@
 <?php
+require_once 'ID.php';
 require_once 'DB.php';
 
 class Mongodloid_Connection {

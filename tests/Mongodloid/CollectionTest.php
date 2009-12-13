@@ -132,6 +132,7 @@ class CollectionTest extends PHPUnit_Framework_TestCase
         $entity->save();
     }
     /**
+     * @runInSeparateProcess
      * @expectedException Mongodloid_Exception
      */
     public function testUnknownFields() {
@@ -143,6 +144,7 @@ class CollectionTest extends PHPUnit_Framework_TestCase
         ));
     }
     /**
+     * @runInSeparateProcess
      * @expectedException Mongodloid_Exception
      */
     public function testUnknownFields2() {
