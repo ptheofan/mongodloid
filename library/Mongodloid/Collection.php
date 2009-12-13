@@ -67,6 +67,11 @@ class Mongodloid_Collection {
 			if ($info['type']) {
 				switch ($info['type']) {
 					case 'ids_array':
+						if (is_string($info['collection'])) {
+							$info['collection'] =
+								$this->_db->getCollection($info['collection']);
+						}
+						
 						$value = new Mongodloid_IDsArray($value,
 														 $info['collection']);
 						break;
@@ -74,6 +79,25 @@ class Mongodloid_Collection {
 			}
 				
 		}
+		return $value;
+	}
+
+	public function translateArrayElementField($key, $value) {
+		$key = preg_replace('@(^|\\.)(\d+)(\\.|$)@', '.', $key);
+		$info = $this->getFieldInfo($key);
+		
+		if (!$info)
+			return $value;
+		
+		if ($info['type']) {
+			switch ($info['type']) {
+				case 'ids_array':
+					if ($value instanceOf Mongodloid_Entity)
+						$value = $value->getId()->getMongoId();
+					break;
+			}
+		}
+		
 		return $value;
 	}
 
@@ -86,7 +110,8 @@ class Mongodloid_Collection {
 			
 			$self =& $this;
 			array_walk(&$value, function(&$_value, $_key) use (&$self, $key) {
-				$_value = $self->translateField( trim($key . '.' . $_key, '.'), $_value );
+				$_value = $self->translateField( trim($key . '.' . $_key, '.'),
+												 $_value );
 			});
 			
 		} else {
@@ -110,11 +135,10 @@ class Mongodloid_Collection {
 								);
 						break;
 					case 'ids_array':
-						$value = array_map(function($entity) {
-							if (!$entity instanceOf Mongodloid_Entity) {
-								return $entity;
-							}
-							return $entity->getId()->getMongoId();
+						$self =& $this;
+						$value = array_map(function($entity) use($self, $key) {
+							return $self->translateArrayElementField($key,
+																	 $entity);
 						}, $value);
 						break;
 					default:

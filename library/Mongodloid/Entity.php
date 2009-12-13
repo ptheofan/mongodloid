@@ -53,21 +53,41 @@ class Mongodloid_Entity {
 
 	public function __call($name, $params) {
 		if (in_array($name, $this->_atomics)) {			
-			$value = $this->get($params[0]);
+			$value = $this->get($params[0], true);
+			
 			switch($name) {
 				case 'inc':
 					if ($params[1] === null)
 						$params[1] = 1;
+					
+					if ($this->collection())
+						$params[1] = $this->collection()->translateField(
+																$params[0],
+																$params[1]);
+						
 					$value += $params[1];
 					break;
 				case 'push':
+					if ($this->collection())
+						$params[1] = $this->collection()->
+										translateArrayElementField(
+																$params[0],
+																$params[1]
+															);
 					if (!is_array($value))
 						$value = array();
 					$value[] = $params[1];
+					
 					break;
 				case 'pushAll':
 					if (!is_array($value))
 						$value = array();
+					
+					if ($this->collection())
+						$params[1] = $this->collection()->translateField(
+																$params[0],
+																$params[1]);
+						
 					$value += $params[1];
 					break;
 				case 'shift':
@@ -82,26 +102,32 @@ class Mongodloid_Entity {
 					}
 					break;
 				case 'pull':
-					/*
-					if (($key = array_search($params[1], $value)) !== FALSE) {
-						unset($value[$key]);
-					}
-					*/
+					if ($this->collection())
+						$params[1] = $this->collection()->
+										translateArrayElementField(
+																$params[0],
+																$params[1]
+															);
 					$_value = array();
 					foreach($value as $val) {
 						if ($val !== $params[1]) {
 							$_value[] = $val;
 						}
-					} // save array indexes - save the world!
+					}
 					$value = $_value;
+					
 					break;
 				case 'pullAll':
+					$params[1] = $this->collection()->translateField(
+																$params[0],
+																$params[1]);
 					$_value = array();
 					foreach($value as $val) {
 						if (!in_array($val, $params[1])) {
 							$_value[] = $val;
 						}
 					}
+					
 					$value = $_value;
 					break;
 			}
@@ -154,7 +180,7 @@ class Mongodloid_Entity {
 		return $this;
 	}
 	
-	public function get($key) {
+	public function get($key, $raw = false) {
 		if (!$key)
 			return $this->_values;
 			
@@ -167,7 +193,7 @@ class Mongodloid_Entity {
 			$result = $result[$current];
 		} while ($key !== null);
 		
-		if ($this->collection()) {
+		if (!$raw && $this->collection()) {
 			$result = $this->_collection->detranslateField($free_key, $result);
 		}
 		

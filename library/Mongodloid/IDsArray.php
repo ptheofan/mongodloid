@@ -16,7 +16,7 @@ class Mongodloid_IDsArray implements Countable, IteratorAggregate {
 	public function query() {
 		$query = $this->_collection->query(array(
 			'_id' => array(
-				'$in' => $this->_ids
+				'$in' => (array)$this->_ids
 				)
 		));
 		
