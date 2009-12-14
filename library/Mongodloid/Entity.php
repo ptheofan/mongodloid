@@ -145,7 +145,7 @@ class Mongodloid_Entity {
 			return $this;
 		}
 		
-		throw new Mongodloid_Exception(__CLASS__ . '::' . $name . ' does not exists and hasn\'t been trapped in __call()');
+		throw new Mongodloid_Exception(get_called_class() . '::' . $name . ' does not exists and hasn\'t been trapped in __call()');
 	}
 	
 	public function update($fields) {
@@ -250,6 +250,17 @@ class Mongodloid_Entity {
 	
 	public function __construct($values = null, $collection = null) {
 		if ($values instanceOf Mongodloid_ID) {
+			if (! $collection instanceOf Mongodloid_Collection) {
+				if (static::$_collectionName) {
+					$this->collection(Mongodloid_Connection::getInstance()
+									->getDb()
+									->getCollection(static::$_collectionName)
+									->setEntityClass(get_called_class()));
+				}
+				$collection = $this->collection();
+			}
+				
+				
 			if (! $collection instanceOf Mongodloid_Collection)
 				throw new Mongodloid_Exception('You need to specify the collection');
 			

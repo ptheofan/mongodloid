@@ -37,6 +37,7 @@ class Mongodloid_Query implements IteratorAggregate {
 	);
 	
 	private $_params = array();
+	private $_skip = 0, $_limit = null;
 	
 	private function _parseQuery($str) {
 		$exprs = preg_split('@ AND |&&@i', $str);
@@ -106,9 +107,27 @@ class Mongodloid_Query implements IteratorAggregate {
 		return $this->cursor()->count();
 	}
 	
+	public function skip($count) {
+		$this->_skip = $count;
+	}
+	
+	public function limit($count, $c) {
+		if ($c === null) {
+			$this->_limit = $count;
+		} else {
+			$this->_skip = $count;
+			$this->_limit = $c;			
+		}
+	}
+	
 	public function cursor() {
-		return new Mongodloid_Cursor( $this->_collection->find($this->_params),
-									  $this->_collection );
+		$cursor = $this->_collection->find($this->_params);
+		
+		$cursor->skip($this->_skip);
+		if ($this->_limit !== null)
+			$cursor->limit($this->_limit);
+			
+		return new Mongodloid_Cursor( $cursor, $this->_collection );
 	}
 	
 	public function query($key, $value = null) {

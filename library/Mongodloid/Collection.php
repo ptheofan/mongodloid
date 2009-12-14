@@ -67,7 +67,14 @@ class Mongodloid_Collection {
 			if ($info['type']) {
 				switch ($info['type']) {
 					case 'id':
-						$value = new $info['collection']($value);
+						if (is_string($info['collection'])) {
+							$info['collection'] =
+								$this->_db->getCollection(
+										$info['collection']
+									);
+						}
+						$value = $info['collection']->getEntity(
+												new Mongodloid_ID($value));
 						break;
 					case 'array':
 						if ($info['of'] == 'id') {
@@ -104,6 +111,8 @@ class Mongodloid_Collection {
 					if ($value instanceOf Mongodloid_Entity)
 						$value = $value->getId()->getMongoId();
 					break;
+				default:
+					settype($value, $info['of']);
 			}
 		}
 		
@@ -153,6 +162,10 @@ class Mongodloid_Collection {
 							return $self->translateArrayElementField($key,
 																	 $entity);
 						}, $value);
+						if ($info['array_unique']) {
+							$value = array_unique($value);
+						}
+						
 						break;
 					default:
 						settype($value, $info['type']);
