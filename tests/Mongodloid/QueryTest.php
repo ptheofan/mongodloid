@@ -3,6 +3,18 @@ require_once '..\library\Mongodloid\Connection.php';
 
 class QueryTest extends PHPUnit_Framework_TestCase 
 {
+	public function testSort() {
+		$cursor = $this->collection->query()
+						->less('num', 100)
+						->sort('num', -1)
+						->cursor();
+		$this->assertEquals(99, $cursor[0]->get('num'));
+		$cursor = $this->collection->query()
+						->less('num', 100)
+						->sort('num', 1)
+						->cursor();
+		$this->assertEquals(0, $cursor[0]->get('num'));
+	}
 	public function testArrayAccess() {
 		$cursor = $this->collection->query()->less('num', 100)->cursor();
 		$this->assertEquals($cursor->count(), 100);

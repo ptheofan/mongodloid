@@ -37,6 +37,7 @@ class Mongodloid_Query implements IteratorAggregate {
 	);
 	
 	private $_params = array();
+	private $_sort = null;
 	private $_skip = 0, $_limit = null;
 	
 	private function _parseQuery($str) {
@@ -120,8 +121,23 @@ class Mongodloid_Query implements IteratorAggregate {
 		}
 	}
 	
+	public function sort($what, $how = null) {
+		if (!$how)
+			$how = 1;
+		
+		if (!is_array($this->_sort))
+			$this->_sort = array();
+			
+		$this->_sort[$what] = $how;
+		
+		return $this;
+	}
+	
 	public function cursor() {
 		$cursor = $this->_collection->find($this->_params);
+		
+		if ($this->_sort)
+			$cursor->sort($this->_sort);
 		
 		$cursor->skip($this->_skip);
 		if ($this->_limit !== null)

@@ -44,10 +44,23 @@ class Mongodloid_Entity {
 	}
 	
 	public function inArray($key, $value) {
-		if ($value instanceOf Mongodloid_Entity) {
-			// TODO: Add DBRef checking
-			return $this->inArray($key, $value->getId())
-					|| $this->inArray($key, (string)$value->getId());
+		if ($value instanceOf Mongodloid_Entity) {		
+			$id = $value->getId();
+			
+			foreach ($this->get($key) as $val) {
+				
+				if ($val instanceOf Mongodloid_ID) {
+					if ($val == $id)
+						return true;
+				} else {
+					if ($val->getId() == $id)
+						return true;
+				}
+			}
+			
+			return false;
+			//return $this->inArray($key, $value->getId())
+			//		|| $this->inArray($key, (string)$value->getId());
 		}
 		
 		return in_array($value, $this->get($key));
