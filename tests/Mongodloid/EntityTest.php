@@ -11,6 +11,41 @@ class TestEntity extends Mongodloid_Entity {
 
 class EntityTest extends PHPUnit_Framework_TestCase 
 {
+	public function testLazyUpdate() {
+		
+		$collection = Mongodloid_Connection::getInstance()
+						->getDb('test')
+						->getCollection('testcollection' . mt_rand(123, 456));
+		
+		$collection->clear();
+		
+		$entity1 = new Mongodloid_Entity(array(
+			'hi' => array(1, 2, 3)
+		), $collection);
+		$entity1->save();
+		
+		$this->assertEquals(array(1,2,3), $entity1->get('hi'));
+		
+		$entity1->startUpdate()
+		
+			->push('hi', 4);
+		
+			$this->assertEquals(array(1,2,3,4), $entity1->get('hi'));
+			
+			// but!
+			
+			$entity2 = new Mongodloid_Entity($entity1->getId(), $collection);
+			
+			$this->assertEquals(array(1,2,3), $entity2->get('hi'));
+		
+		$entity1->endUpdate();
+		
+		$this->assertEquals(array(1,2,3,4), $entity1->get('hi'));
+		
+		$entity2 = new Mongodloid_Entity($entity1->getId(), $collection);
+		
+		$this->assertEquals(array(1,2,3,4), $entity2->get('hi'));
+	}
 	public function setUp() {
 		Mongodloid_Connection::getInstance()
 						->getDb('test')->drop();
@@ -185,7 +220,7 @@ class EntityTest extends PHPUnit_Framework_TestCase
 		$entity4->remove();
 		
 		$entity5 = new Mongodloid_Entity($entity3->getId(), $collection);
-		$this->assertEquals($entity5->getRawData(), array());
+		$this->assertEquals($entity5->getRawData(), null);
 	}
 	
 	
@@ -244,11 +279,11 @@ class EntityTest extends PHPUnit_Framework_TestCase
 						->getCollection('testcollection' . mt_rand(123, 456));
 		
 		$entity1 = new Mongodloid_Entity();
-		$this->assertEquals($entity1->getRawData(), array());
+		$this->assertEquals($entity1->getRawData(), null);
 		$this->assertNull($entity1->collection());
 		
 		$entity2 = new Mongodloid_Entity($collection);
-		$this->assertEquals($entity2->getRawData(), array());
+		$this->assertEquals($entity2->getRawData(), null);
 		$this->assertEquals($entity2->collection(), $collection);
 		
 		$data = array(

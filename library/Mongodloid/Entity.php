@@ -3,6 +3,8 @@ class Mongodloid_Entity {
 	private $_values;
 	private $_collection;
 	
+	private $_lazyUpdate = 0;
+	private $_lazyUpdates = array();
 	
 	// initial settings for overloading,
 	// are added after settings in collection class
@@ -49,6 +51,20 @@ class Mongodloid_Entity {
 		}
 		
 		return in_array($value, $this->get($key));
+	}
+
+	public function startUpdate() {
+		++$this->_lazyUpdate;
+		
+		return $this;
+	}
+	
+	public function endUpdate() {
+		if (--$this->_lazyUpdate <= 0) {
+			$this->update($this->_lazyUpdates);
+		}
+		
+		return $this;
 	}
 
 	public function __call($name, $params) {
@@ -149,12 +165,17 @@ class Mongodloid_Entity {
 	}
 	
 	public function update($fields) {
-		if (!$this->collection())
-			throw new Mongodloid_Exception('You need to specify the collection');
-		
-		return $this->_collection->update(array(
-			'_id' => $this->getId()->getMongoID()
-		), $fields);
+		if ($this->_lazyUpdate > 0) {
+			$this->_lazyUpdates += $fields;
+		} else {
+			if (!$this->collection())
+				throw new Mongodloid_Exception('You need to specify the collection');
+			
+			return $this->_collection->update(array(
+				'_id' => $this->getId()->getMongoID()
+			), $fields);
+
+		}
 	}
 	
 	public function set($key, $value, $dontSend = false) {
@@ -174,7 +195,8 @@ class Mongodloid_Entity {
 			$result = $value;
 		}
 		
-		if (!$dontSend && $this->collection() && $this->getId() && $free_key)
+		if (!$dontSend && $free_key && $free_key != '_id'
+				&& $this->collection() && $this->getId())
 			$this->update(array('$set' => array($real_key => $result)));
 		
 		return $this;
@@ -214,7 +236,8 @@ class Mongodloid_Entity {
 			
 		$data = unserialize(serialize($data));
 		
-		$this->set('', $data, false);
+		foreach ($data as $key => $value)
+			$this->set($key, $value, false);
 		
 		return $this;
 	}

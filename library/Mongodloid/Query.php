@@ -111,7 +111,7 @@ class Mongodloid_Query implements IteratorAggregate {
 		$this->_skip = $count;
 	}
 	
-	public function limit($count, $c) {
+	public function limit($count, $c = null) {
 		if ($c === null) {
 			$this->_limit = $count;
 		} else {
