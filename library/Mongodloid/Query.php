@@ -110,6 +110,7 @@ class Mongodloid_Query implements IteratorAggregate {
 	
 	public function skip($count) {
 		$this->_skip = $count;
+		return $this;
 	}
 	
 	public function limit($count, $c = null) {
@@ -119,6 +120,7 @@ class Mongodloid_Query implements IteratorAggregate {
 			$this->_skip = $count;
 			$this->_limit = $c;			
 		}
+		return $this;
 	}
 	
 	public function sort($what, $how = null) {

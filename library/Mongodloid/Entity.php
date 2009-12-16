@@ -35,6 +35,14 @@ class Mongodloid_Entity {
 				((string)$this->getId() == (string)$obj->getId());
 	}
 	
+	public static function getCollection($db = null) {
+		if (static::$_collectionName)
+			return Mongodloid_Connection::getInstance()->getDb($db)
+				->getCollection(static::$_collectionName)
+				->setEntityClass(get_called_class());
+		return null;
+	}
+	
 	public function equals(Mongodloid_Entity $obj) {
 		$data1 = $this->getRawData();
 		$data2 = $obj->getRawData();
